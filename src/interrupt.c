@@ -1,8 +1,7 @@
 // Copyright 2021, Ryan Wendland, XboxHDMI by Ryzee119
 // SPDX-License-Identifier: MIT
 
-#include "stm32f0xx_hal.h"
-#include "stm32f0xx.h"
+#include "stm32_hal.h"
 #include "adv7511.h"
 #include "interrupt.h"
 
@@ -15,10 +14,10 @@ void SysTick_Handler(void)
     HAL_SYSTICK_IRQHandler();
 }
 
-void EXTI4_15_IRQHandler(void)
+void ADV_IRQ_HANDLER(void)
 {
     encoder.interrupt = 1;
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
+    HAL_GPIO_EXTI_IRQHandler(ADV_IRQ_PIN);
 }
 
 void NMI_Handler(void)

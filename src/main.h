@@ -4,6 +4,8 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
+#include "stm32_hal.h"
+
 #define ADV7511_INT_Pin GPIO_PIN_9
 #define ADV7511_INT_GPIO_Port GPIOA
 #define ADV7511_INT_EXTI_IRQn EXTI4_15_IRQn

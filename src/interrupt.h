@@ -9,7 +9,7 @@ extern "C"
 {
 #endif
 
-#include "stm32f0xx_hal.h"
+#include "stm32_hal.h"
 #include "main.h"
 
 void NMI_Handler(void);

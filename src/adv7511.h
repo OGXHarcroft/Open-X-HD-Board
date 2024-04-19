@@ -5,7 +5,7 @@
 #define ADV7511_H_
 
 #include <stdbool.h>
-#include "stm32f0xx_hal.h"
+#include "stm32_hal.h"
 
 #define BIT(nr) (1UL << (nr))
 

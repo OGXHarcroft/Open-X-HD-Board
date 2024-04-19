@@ -3,7 +3,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "stm32f0xx_hal.h"
+#include "stm32_hal.h"
 #include "adv7511.h"
 
 void adv7511_struct_init(adv7511 *encoder)

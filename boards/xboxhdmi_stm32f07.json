@@ -1,7 +1,7 @@
 {
   "build": {
     "cpu": "cortex-m0",
-    "extra_flags": "-DSTM32F070x6",
+    "extra_flags": "-DSTM32F070x6 -DXBOXHDMI_LEGACY",
     "f_cpu": "48000000L",
     "mcu": "stm32f070f6p6",
     "product_line": "STM32F070x6",

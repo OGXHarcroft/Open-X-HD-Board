@@ -3,11 +3,12 @@
 
 #include <stdio.h>
 #include "main.h"
-#include "stm32f0xx_hal.h"
+#include "stm32_hal.h"
 #include "adv7511.h"
 
 I2C_HandleTypeDef hi2c1;
-UART_HandleTypeDef huart2;
+I2C_HandleTypeDef hi2c2;
+UART_HandleTypeDef huart;
 adv7511 encoder;
 
 void SystemClock_Config(void);
@@ -18,7 +19,7 @@ static void init_uart2(void);
 //Stdout print on UART for printf
 int _write(int file, char *ptr, int len)
 {
-    HAL_UART_Transmit(&huart2, (uint8_t *)ptr, len, 100);
+    HAL_UART_Transmit(&huart, (uint8_t *)ptr, len, 100);
     return len;
 }
 
@@ -266,57 +267,11 @@ int main(void)
     }
 }
 
-void SystemClock_Config(void)
-{
-
-    RCC_OscInitTypeDef RCC_OscInitStruct;
-    RCC_ClkInitTypeDef RCC_ClkInitStruct;
-    RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-    //Initializes the CPU, AHB and APB busses clocks
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-    RCC_OscInitStruct.HSICalibrationValue = 16;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-
-    //Initializes the CPU, AHB and APB busses clocks
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-    {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
-    PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-        _Error_Handler(__FILE__, __LINE__);
-    }
-
-    //Configure the Systick interrupt time
-    HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
-
-    //Configure the Systick
-    HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-    //SysTick_IRQn interrupt configuration
-    HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-
 /* I2C1 init function */
 static void init_i2c1(void)
 {
-
-    hi2c1.Instance = I2C1;
-    hi2c1.Init.Timing = 0x2000090E;
+    hi2c1.Instance = HI2C_ADV_INSTANCE;
+    hi2c1.Init.Timing = HI2C_ADV_INSTANCE_TIMING;
     hi2c1.Init.OwnAddress1 = 0;
     hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -344,17 +299,16 @@ static void init_i2c1(void)
 
 static void init_uart2(void)
 {
-
-    huart2.Instance = USART2;
-    huart2.Init.BaudRate = 115200;
-    huart2.Init.StopBits = UART_STOPBITS_1;
-    huart2.Init.Parity = UART_PARITY_NONE;
-    huart2.Init.Mode = UART_MODE_TX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-    huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-    if (HAL_HalfDuplex_Init(&huart2) != HAL_OK)
+    huart.Instance = HUART_DEBUG_INSTANCE;
+    huart.Init.BaudRate = 9600;
+    huart.Init.StopBits = UART_STOPBITS_1;
+    huart.Init.Parity = UART_PARITY_NONE;
+    huart.Init.Mode = UART_MODE_TX;
+    huart.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart.Init.OverSampling = UART_OVERSAMPLING_16;
+    huart.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+    huart.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+    if (HAL_HalfDuplex_Init(&huart) != HAL_OK)
     {
         _Error_Handler(__FILE__, __LINE__);
     }
@@ -363,40 +317,60 @@ static void init_uart2(void)
 static void init_gpio(void)
 {
 
-    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    //GPIO Ports Clock Enable
-    __HAL_RCC_GPIOF_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    #ifdef GPIOA
+    if (ADV_IRQ_PORT==GPIOA || STATUS_LED_PORT==GPIOA || SPARE_GPIO_PORT==GPIOA)
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+    #endif
+    #ifdef GPIOB
+    if (ADV_IRQ_PORT==GPIOB || STATUS_LED_PORT==GPIOB || SPARE_GPIO_PORT==GPIOB)
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+    #endif
+    #ifdef GPIOC
+    if (ADV_IRQ_PORT==GPIOC || STATUS_LED_PORT==GPIOC || SPARE_GPIO_PORT==GPIOC)
+        __HAL_RCC_GPIOC_CLK_ENABLE();
+    #endif
+    #ifdef GPIOD
+    if (ADV_IRQ_PORT==GPIOD || STATUS_LED_PORT==GPIOD || SPARE_GPIO_PORT==GPIOD)
+        __HAL_RCC_GPIOD_CLK_ENABLE();
+    #endif
+    #ifdef GPIOE
+    if (ADV_IRQ_PORT==GPIOE || STATUS_LED_PORT==GPIOE || SPARE_GPIO_PORT==GPIOE)
+        __HAL_RCC_GPIOE_CLK_ENABLE();
+    #endif
+    #ifdef GPIOF
+    if (ADV_IRQ_PORT==GPIOF || STATUS_LED_PORT==GPIOF || SPARE_GPIO_PORT==GPIOF)
+        __HAL_RCC_GPIOF_CLK_ENABLE();
+    #endif
+    #ifdef GPIOG
+    if (ADV_IRQ_PORT==GPIOG || STATUS_LED_PORT==GPIOG || SPARE_GPIO_PORT==GPIOG)
+        __HAL_RCC_GPIOG_CLK_ENABLE();
+    #endif
+    #ifdef GPIOH
+    if (ADV_IRQ_PORT==GPIOH || STATUS_LED_PORT==GPIOH || SPARE_GPIO_PORT==GPIOH)
+        __HAL_RCC_GPIOH_CLK_ENABLE();
+    #endif
 
-    //Configure GPIO pins : PA5 PA6 PA7 (Unused)
-    GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    //Configure GPIO pin : PB1 (Unused)
-    GPIO_InitStruct.Pin = GPIO_PIN_1;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    //Configure GPIO pins : PA10 (Status LED)
-    GPIO_InitStruct.Pin = STATUS_LED;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    //Configure GPIO pin : ADV7511_INT_Pin
-    GPIO_InitStruct.Pin = ADV7511_INT_Pin;
+    GPIO_InitStruct.Pin = ADV_IRQ_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(ADV7511_INT_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(ADV_IRQ_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = STATUS_LED_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(STATUS_LED_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = SPARE_GPIO_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(SPARE_GPIO_PORT, &GPIO_InitStruct);
 
     //EXTI interrupt init
-    HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
+    HAL_NVIC_SetPriority(ADV_IRQ_LINE, 0, 0);
+    HAL_NVIC_EnableIRQ(ADV_IRQ_LINE);
+
 }
 
 void _Error_Handler(char *file, int line)
