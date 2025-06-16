@@ -137,11 +137,11 @@ int main(void)
         if (pll_lock == 0)
         {
             printf("PLL Lock: %u\r\n", pll_lock);
-            HAL_GPIO_WritePin(GPIOA, STATUS_LED, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(STATUS_LED_PORT, STATUS_LED_PIN, GPIO_PIN_RESET);
         }
         else
         {
-            HAL_GPIO_WritePin(GPIOA, STATUS_LED, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(STATUS_LED_PORT, STATUS_LED_PIN, GPIO_PIN_SET);
         }
 
         if ((adv7511_read_register(&hi2c1, 0x3e) >> 2) != (vic & 0x0F))
